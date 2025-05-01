@@ -2,18 +2,21 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"os"
 	"strconv"
+	"strings"
 
-	// F "fmt"
+	F "fmt"
+	U "lemin/utils"
 	S "strings"
 )
 
 
 type s_Global struct{
 	Ants      	  int;
-	FirstRoomName string;
-	EndRoomName   string;
+	FirstRoom     s_Rooms;
+	LastRoom      s_Rooms;
 	rooms[]   	  s_Rooms;
 	links[]   	  s_Links;
 } 
@@ -46,77 +49,111 @@ func checkFile(arg string) bool{
 	return true ;
 }
 
-func isWhiteSpaces(line string) bool{
 
-if line == "" || line == "\t" || line == "\r" {
-	return true
-}
-return false;
+
+func ParseFile(file *os.File) ( *s_Global, error){
+
+	var data s_Global;
+	var start, end int;
+	
+	scanner := bufio.NewScanner(file)
+	
+	if U.IsEmptyFile(file) {
+		return nil, errors.New("Empty File!") 
+	}
+
+	// is number of ants
+	if (scanner.Scan()){
+		if nbr, stat := U.IsOnlyInt(scanner.Text()); stat {
+			data.Ants = nbr;
+		}else{ return nil, errors.New("invalid ants number") }
+	}
+
+	for (scanner.Scan()) {
+		F.Println(len(scanner.Text()) , scanner.Text())
+	
+		//isComment #comment
+		if  U.IsComment(scanner.Text()) { continue; }
+
+
+		// standard checkLine  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		if !U.IsValidLine(scanner.Text()){
+			return nil, errors.New("Invalid Data Format ")
+		}
+
+		//isCommand ##start or ##end or ##err
+		if S.HasPrefix(scanner.Text(), "##"){
+			if scanner.Text() == "##start" {
+				start++
+				if scanner.Scan() && start == 1 && end == 0  && U.IsRoom(scanner.Text()) {
+					parts := strings.Fields(scanner.Text())
+			
+					r_x, _:= strconv.Atoi(parts[1])
+					r_y, _:= strconv.Atoi(parts[2])
+
+					data.FirstRoom = s_Rooms{parts[0],r_x, r_y}	
+					data.rooms = append(data.rooms, data.FirstRoom)
+					
+				}else{ return nil, errors.New("Invalid Data Format!") }
+
+			}else if scanner.Text() == "##end" {
+				end++
+				if scanner.Scan() && start == 1 && end == 1 && U.IsRoom(scanner.Text()) {
+					parts := strings.Fields(scanner.Text())
+			
+					r_x, _:= strconv.Atoi(parts[1])
+					r_y, _:= strconv.Atoi(parts[2])
+
+					data.LastRoom = s_Rooms{parts[0], r_x, r_y}	
+					data.rooms = append(data.rooms, data.LastRoom)
+				
+				}else{ return nil, errors.New("Invalid Data Format!!") }
+			}
+			continue;
+		}
+
+		//isRoom
+		if U.IsRoom(scanner.Text()) {
+			parts := strings.Fields(scanner.Text())
+			r_x, _:= strconv.Atoi(parts[1])
+			r_y, _:= strconv.Atoi(parts[2])
+			data.rooms = append(data.rooms, s_Rooms{parts[0], r_x, r_y})
+			continue ;
+		}
+
+		//islink between rooms
+		if U.IsLink(scanner.Text()) {
+			parts := strings.Split(scanner.Text() , "-")
+			data.links = append(data.links, s_Links{parts[0], parts[1]})
+			continue ;
+		}
+		// if !(comment || command || room || links)
+		return nil, errors.New("Invalid Data Format!!! ---> "+ scanner.Text()) 		
+	}
+
+	return &data, nil
 }
 
 func main(){
-args:= os.Args[1:]
-if (len(args) != 1){
-	os.Stderr.WriteString("Err : Usage Invalid !\n")
-	return ;
-}
 
-if!(checkFile(args[0])){
-	os.Stderr.WriteString("Err : Invalid Argument !\n")
-	return ;
-}
-
-file,_ := os.Open(args[0]);
-scanner := bufio.NewScanner(file)
-
-
-if !scanner.Scan() {
-    if scanner.Err() == nil {
-        os.Stderr.WriteString("Err: Empty File!\n")
-		return;
-	}
-}
-
-for (scanner.Scan()){
-
-	if 	isWhiteSpaces(scanner.Text()){
-		os.Stderr.WriteString("Err : Invalid Format!! \n"); return
+	args:= os.Args[1:]
+	if (len(args) != 1){
+		os.Stderr.WriteString("ERROR : Usage Invalid !\n")
+		return ;
 	}
 
-	if scanner.Text() == "##start" || scanner.Text() == "##end"{
-		continue;
+	if!(checkFile(args[0])){
+		os.Stderr.WriteString("ERROR : Invalid Argument [" + args[0] + "] !\n")
+		return ;
 	}
 
-	if S.Count(scanner.Text(), "#") == 1 && scanner.Text()[:1] == "#"{
-		//ignore comment
-		continue;
-	}
+	file,_ := os.Open(args[0]);
+	data, err := ParseFile(file)
 
-	if S.Contains(scanner.Text(),"-") && S.Count(scanner.Text(), "-") == 1 {
-		tokens:= S.Split(scanner.Text(), "-")
-		if len(tokens) != 2 { os.Stderr.WriteString("Err : Invalid Format! \n"); return}
-		
-		tkn1, err := strconv.Atoi(tokens[0])
-		tkn2, err := strconv.Atoi(tokens[1])
-		if err != nil || tkn1 < 0 || tkn2 < 0 { os.Stderr.WriteString("Err : Invalid Format! \n"); return}
+	if err != nil{ os.Stderr.WriteString("ERROR :"+ err.Error() + "\n") ;return }
 
-		_= tkn1 ; _= tkn2	
-		// 1- save the links to the stucts
-		}
+	_= data
 
-		// 2- If room ➔ save name and coordinates{
-
-		// }
-
-
-		// 3- else {
-		// 	os.Stderr.WriteString("Err: " + scanner.Err().Error() + "\n")
-		// }
-
-	}
-
-
-
-
+	defer file.Close()
 
 }

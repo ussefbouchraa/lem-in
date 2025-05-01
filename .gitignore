@@ -1,0 +1,17 @@
+
+
+
+for each line:
+    if line == "##start":
+        next line = start room
+    else if line == "##end":
+        next line = end room
+    else if line has 3 parts (name x y):
+        create a s_Rooms and add to rooms[]
+    else if line has '-' :
+        create a s_Links and add to links[]
+    else if line is only a number:
+        save as Ants
+    else if line starts with "#":
+        ignore
+close file
