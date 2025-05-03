@@ -88,3 +88,4 @@ func IsLink(line string) bool {
 
 	return true
 }
+
