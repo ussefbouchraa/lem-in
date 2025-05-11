@@ -14,8 +14,8 @@ import (
 
 type s_Global struct {
 	Ants      int
-	FirstRoom s_Rooms
-	LastRoom  s_Rooms
+	StartRoom s_Rooms
+	EndRoom   s_Rooms
 	rooms     []s_Rooms
 	links     []s_Links
 }
@@ -68,17 +68,17 @@ func ParseFile(file *os.File) (*s_Global, error) {
 	}
 
 	for scanner.Scan() {
-		// F.Println(len(scanner.Text()) , scanner.Text())
-
-		//isComment #comment
-		if U.IsComment(scanner.Text()) {
-			continue
-		}
 
 		// standard checkLine  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		if !U.IsValidLine(scanner.Text()) {
 			return nil, errors.New("Invalid Data Format ")
 		}
+		
+		//isComment #comment
+		if U.IsComment(scanner.Text()) {
+			continue
+		}
+
 
 		//isCommand ##start or ##end or ##err
 		if S.HasPrefix(scanner.Text(), "##") {
@@ -90,8 +90,8 @@ func ParseFile(file *os.File) (*s_Global, error) {
 					r_x, _ := strconv.Atoi(parts[1])
 					r_y, _ := strconv.Atoi(parts[2])
 
-					data.FirstRoom = s_Rooms{parts[0], r_x, r_y}
-					data.rooms = append(data.rooms, data.FirstRoom)
+					data.StartRoom = s_Rooms{parts[0], r_x, r_y}
+					data.rooms = append(data.rooms, data.StartRoom)
 
 				} else {
 					return nil, errors.New("Invalid Data Format!")
@@ -105,12 +105,10 @@ func ParseFile(file *os.File) (*s_Global, error) {
 					r_x, _ := strconv.Atoi(parts[1])
 					r_y, _ := strconv.Atoi(parts[2])
 
-					data.LastRoom = s_Rooms{parts[0], r_x, r_y}
-					data.rooms = append(data.rooms, data.LastRoom)
+					data.EndRoom = s_Rooms{parts[0], r_x, r_y}
+					data.rooms = append(data.rooms, data.EndRoom)
 
-				} else {
-					return nil, errors.New("Invalid Data Format!!")
-				}
+				} else { return nil, errors.New("Invalid Data Format!!") }
 			}
 			continue
 		}
@@ -131,7 +129,7 @@ func ParseFile(file *os.File) (*s_Global, error) {
 			continue
 		}
 		// if !(comment || command || room || links)
-		return nil, errors.New("Invalid Data Format!!! ---> " + scanner.Text())
+		return nil, errors.New("Invalid Data Format Not [comment || command || room || links] ---> " + scanner.Text())
 	}
 
 	return &data, nil
@@ -141,7 +139,7 @@ func Printing(data *s_Global) {
 
 	F.Println("number of ants-----> ", data.Ants)
 
-	F.Println("Start and End Rooms-----> ", data.FirstRoom, " ", data.LastRoom)
+	F.Println("Start and End Rooms-----> ", data.StartRoom, " ", data.EndRoom)
 
 	F.Println("Rooms ----->")
 	for _, val := range data.rooms {
@@ -162,7 +160,7 @@ func IsGlobalEmpty(g *s_Global) bool {
 	if len(g.rooms) == 0 || len(g.links) == 0 {
 		return true
 	}
-	if (g.FirstRoom == s_Rooms{} || g.LastRoom == s_Rooms{}) {
+	if (g.StartRoom == s_Rooms{} || g.EndRoom == s_Rooms{}) {
 		return true
 	}
 
@@ -199,7 +197,7 @@ func IsDupTunnels(links []s_Links) bool {
 
 	for _, tunnel := range links {
 		if _map[tunnel.room1+tunnel.room2] {
-			return false
+			return true
 		}
 		_map[tunnel.room1+tunnel.room2] = true
 	}
@@ -268,7 +266,7 @@ func main() {
 
 	args := os.Args[1:]
 	if len(args) != 1 {
-		os.Stderr.WriteString("ERROR: Usage Invalid !\n")
+		os.Stderr.WriteString("ERROR: Invalid Usage [ go run . file.txt ] !\n")
 		return
 	}
 
@@ -284,7 +282,6 @@ func main() {
 		return
 	}
 
-	
 	if err = ProcessData(data); err != nil {
 		os.Stderr.WriteString("ERROR: invalid data format " + err.Error() + "\n")
 		return
