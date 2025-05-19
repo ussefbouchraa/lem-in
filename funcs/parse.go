@@ -9,124 +9,66 @@ import (
 )
 
 type Room struct {
-	Id int
+	ID int
 }
 
-var (
-	StartRoom, EndRoom int
-	istart, isEnd      bool
-	antcount           int
+const (
+	StartMarker = "##start"
+	EndMarker   = "##end"
 )
 
-func Parse() {
-	r := make(map[int]*Room)
-	connections := map[int][]int{}
-	file, _ := os.Open("filetest.txt")
-	scanner := bufio.NewScanner(file)
-
-	if scanner.Scan() {
-		firstline := scanner.Text()
-		antcount, _ = strconv.Atoi(firstline)
-		fmt.Println("antsssss---->", antcount)
-	}
-
-	for scanner.Scan() {
-		fileline := scanner.Text()
-
-		if len(fileline) == 0 {
-			continue
-		}
-		if fileline == "##start" || fileline == "##end" {
-			if fileline == "##start" {
-				istart = true
-				continue
-			} else {
-				isEnd = true
-				continue
-			}
-		}
-
-		// Tunnels
-		if strings.Contains(fileline, "-") {
-			extract := strings.Split(fileline, "-")
-			if len(extract) == 2 {
-				from, _ := strconv.Atoi(extract[0])
-				to, _ := strconv.Atoi(extract[1])
-				connections[from] = append(connections[from], to)
-				connections[to] = append(connections[to], from)
-				continue
-			}
-		}
-		// Rooms
-		extract := strings.Split(fileline, " ")
-		if len(extract) != 3 {
-			continue
-		}
-
-		id, _ := strconv.Atoi(extract[0])
-		r[id] = &Room{Id: id}
-
-		if istart || isEnd {
-			if istart {
-				StartRoom = id
-				istart = false
-			} else {
-				EndRoom = id
-				isEnd = false
-			}
-		}
-	}
-
-	fmt.Println("Rooms:", r)
-	fmt.Println("StartRoom ID:", StartRoom)
-	fmt.Println("EndRoom ID:", EndRoom)
-	fmt.Println("con---->", connections)
-
-	paths := FindAllDisjointPaths(connections, StartRoom, EndRoom)
-	fmt.Println("SHORT PATH : ", paths)
-
-	SimulateAnts(paths, antcount)
+// Game struct to hold the state of the game
+type Game struct {
+	Rooms       map[int]Room
+	Connections map[int][]int
+	StartRoom   int
+	EndRoom     int
+	AntCount    int
 }
 
-func SimulateAnts(paths [][]int, totalAnts int) {
-	type Ant struct {
-		id   int
-		path []int
-		pos  int
-	}
+// Parse function to load and parse the input file
+func Parse(filename string) (*Game, error) {
+	
+    g := &Game{
+        Rooms:       make(map[int]Room),
+        Connections: make(map[int][]int),
+    }
 
-	assigned := []Ant{}
-	antID := 1
+    file, err := os.Open(filename)
+    if err != nil { return nil, err }
+    defer file.Close()
 
-	// Step 1: Smart distribution
-	for antID <= totalAnts {
-		for _, path := range paths {
-			if antID > totalAnts {
-				break
-			}
-			assigned = append(assigned, Ant{id: antID, path: path, pos: 0})
-			antID++
-		}
-	}
+    scanner := bufio.NewScanner(file)
 
-	// Step 2: Simulate step-by-step movement
-	step := 0
-	for {
-		step++
-		moved := false
-		// fmt.Printf("Step %d:\n", step)
-		for i := 0; i < len(assigned); i++ {
-			ant := &assigned[i]
-			if ant.pos < len(ant.path)-1 {
-				ant.pos++
-				room := ant.path[ant.pos]
-				fmt.Printf("L%d-%d ", ant.id, room)
-				moved = true
-			}
-		}
-		fmt.Println()
-		if !moved {
-			break
-		}
-	}
+    // 1) read ant count
+    if !scanner.Scan() { return nil, fmt.Errorf("empty file") }
+    g.AntCount, _ = strconv.Atoi(strings.TrimSpace(scanner.Text()))
+
+    var isStart, isEnd bool
+    for scanner.Scan() {
+        line := strings.TrimSpace(scanner.Text())
+        if line == "" { continue }
+
+        switch line {
+        case StartMarker:
+            isStart = true; continue
+        case EndMarker:
+            isEnd = true;  continue
+        }
+
+        if strings.Contains(line, "-") {                    // tunnel
+            parts := strings.Split(line, "-")
+            from, _ := strconv.Atoi(parts[0])
+            to,   _ := strconv.Atoi(parts[1])
+            g.Connections[from] = append(g.Connections[from], to)
+            g.Connections[to]   = append(g.Connections[to], from)
+        } else if parts := strings.Fields(line); len(parts) == 3 { // room
+            id, _ := strconv.Atoi(parts[0])
+            g.Rooms[id] = Room{ID: id}
+            if isStart { g.StartRoom = id; isStart = false }
+            if isEnd   { g.EndRoom   = id; isEnd   = false }
+        }
+    }
+    if err := scanner.Err(); err != nil { return nil, err }
+    return g, nil
 }
