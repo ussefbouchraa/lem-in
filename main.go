@@ -2,20 +2,19 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	F "lemin/funcs"
 )
 
-// Room struct represents a room with an ID
-
 func main() {
-
-	// Parse the input file
+	start := time.Now()
 	g, err := F.Parse("q.txt")
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 
-	// Find paths based on parsed data
 	F.FindPaths(g)
+	fmt.Println("Execution time:", time.Since(start))
 }
