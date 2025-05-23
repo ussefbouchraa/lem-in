@@ -2,7 +2,6 @@ package lemin
 
 import (
 	"fmt"
-	"sort"
 	"sync"
 )
 
@@ -82,13 +81,13 @@ func FindAllDisjointPaths(connections map[string][]string, start, end string) []
 		ok := true
 		for _, room := range p {
 			if room != start && room != end && used[room] {
-				ok = false
+				ok = false // check path
 				break
 			}
 		}
 		if ok {
-			final = append(final, p)
-			for _, room := range p {
+			final = append(final, p) // append valid paths
+			for _, room := range p { // aplly all rooms in this path ---> visitide
 				if room != start && room != end {
 					used[room] = true
 				}
@@ -99,110 +98,58 @@ func FindAllDisjointPaths(connections map[string][]string, start, end string) []
 	return final
 }
 
-func ChooseOptimalPaths(paths [][]string, totalAnts int) [][]string {
-	if len(paths) == 0 {
-		return nil
+func Check(paths [][]string) {
+	fmt.Println("len how many paths have ", len(paths))
+	for _, v := range paths {
+		fmt.Println("P--> ", len(v))
 	}
-	sort.Slice(paths, func(i, j int) bool { return len(paths[i]) < len(paths[j]) })
-
-	bestSet := paths[:1]
-	minRounds := simulateRounds(bestSet, totalAnts)
-
-	for k := 2; k <= len(paths); k++ {
-		subset := paths[:k]
-		rounds := simulateRounds(subset, totalAnts)
-		if rounds < minRounds {
-			minRounds = rounds
-			bestSet = subset
-		}
-	}
-	return bestSet
 }
 
-func simulateRounds(subset [][]string, totalAnts int) int {
-	n := len(subset)
-	antsPer := make([]int, n)
+func Small(g int, paths [][]string) {
+	for i := 0; i < len(paths); i++ {
+		round := (len(paths[i]) - 1 + g - 1)
+		fmt.Println("Round-----> ", round)
 
-	for a := 0; a < totalAnts; a++ {
-		best := 0
-		bestScore := len(subset[0]) + antsPer[0]
-		for i := 1; i < n; i++ {
-			score := len(subset[i]) + antsPer[i]
-			if score < bestScore {
-				bestScore = score
-				best = i
-			}
-		}
-		antsPer[best]++
 	}
-
-	max := 0
-	for i, count := range antsPer {
-		if count == 0 {
-			continue
-		}
-		rounds := len(subset[i]) + count - 2
-		if rounds > max {
-			max = rounds
-		}
-	}
-	return max
+	return
 }
 
-type Ant struct {
-	Id   int
-	Path []string
-	Idx  int
-}
+func ChoosingOptimalpath(paths [][]string, totalants int) [][]string {
+	bestRounds := int(^uint(0) >> 1) // max int
+	bestpaths := [][]string{}
 
-func SimulateAntsWalk(paths [][]string, antCount int) {
-	type Ant struct {
-		id   int
-		path []string
-		pos  int
-	}
-	pathCount := len(paths)
-	antsPerPath := make([]int, pathCount)
-	for i := 0; i < antCount; i++ {
-		best := 0
-		for j := 1; j < pathCount; j++ {
-			if len(paths[j])+antsPerPath[j] < len(paths[best])+antsPerPath[best] {
-				best = j
+	for k := 1; k <= len(paths); k++ { // try all combinations of paths
+
+		selcted := paths[:k]
+		maxlen := 0
+
+		for _, P := range selcted {
+			if len(P) > maxlen {
+				maxlen = len(P)
 			}
 		}
-		antsPerPath[best]++
-	}
 
-	var ants []Ant
-	id := 1
-	for i, count := range antsPerPath {
-		for j := 0; j < count; j++ {
-			ants = append(ants, Ant{id, paths[i], 1})
-			id++
-		}
-	}
+		round := maxlen - 1 + (totalants / k)
 
-	for moved := true; moved; {
-		moved = false
-		line := ""
-		for i := range ants {
-			if ants[i].pos < len(ants[i].path) {
-				if line != "" {
-					line += " "
-				}
-				line += fmt.Sprintf("L%d-%s", ants[i].id, ants[i].path[ants[i].pos])
-				ants[i].pos++
-				moved = true
-			}
+		if totalants%k != 0 {
+			round++
 		}
-		if moved {
-			fmt.Println(line)
+
+		if round < bestRounds {
+			bestRounds = round
+			bestpaths = selcted
 		}
+		fmt.Println("----> ", round)
+
 	}
+	return bestpaths
 }
 
 func FindPaths(g *Game) {
 	all := FindAllDisjointPaths(g.Connections, g.StartRoom, g.EndRoom)
-	best := ChooseOptimalPaths(all, g.AntCount)
-	SimulateAntsWalk(best, g.AntCount)
+	// fmt.Println("all----> ", all)
+	// Check(all)
+	// Small(g.AntCount, all)
+
+	fmt.Println(ChoosingOptimalpath(all, g.AntCount))
 }
