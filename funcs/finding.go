@@ -5,6 +5,9 @@ import (
 	"sync"
 )
 
+var blocked = make(map[string]bool)
+var mu sync.Mutex
+
 func BfsWithBlock(connections map[string][]string, start, end string, blocked map[string]bool) []string {
 	queue := [][]string{{start}}
 	visited := map[string]bool{start: true}
@@ -14,8 +17,14 @@ func BfsWithBlock(connections map[string][]string, start, end string, blocked ma
 		queue = queue[1:] // dequeue
 		last := path[len(path)-1]
 		if last == end {
+			mu.Lock()
+			for _, v := range path {
+				blocked[v] = true
+			}
+			mu.Unlock()
 			return path
 		}
+		mu.Lock()
 		for _, nb := range connections[last] {
 			if visited[nb] || blocked[nb] {
 				continue
@@ -24,6 +33,7 @@ func BfsWithBlock(connections map[string][]string, start, end string, blocked ma
 			newPath := append(append([]string{}, path...), nb)
 			queue = append(queue, newPath) // enqueue
 		}
+		mu.Unlock()
 	}
 	return nil
 }
@@ -36,8 +46,7 @@ func FindAllDisjointPaths(connections map[string][]string, start, end string) []
 	done := make(chan struct{})
 	var allPaths [][]string
 	var wg sync.WaitGroup
-	blocked := map[string]bool{} // private map of go routine
-	var mu sync.Mutex
+	// var mu sync.Mutex
 	// 8 goroutines
 	for w := 0; w < workers; w++ { // this loop is just runs 8 go routines
 		wg.Add(1)
@@ -48,57 +57,71 @@ func FindAllDisjointPaths(connections map[string][]string, start, end string) []
 				case <-done:
 					return
 				default:
-					mu.Lock()
-					newblockedlist := (make(map[string]bool))
 
-					for k, v := range blocked {
-						newblockedlist[k] = v
-
-					}
-					mu.Unlock()
-					p := BfsWithBlock(connections, start, end, newblockedlist)
+					// blocked := make(map[string]bool) // private map of go routine
+					p := BfsWithBlock(connections, start, end, blocked)
 					if p == nil {
 						return
 					}
-					mu.Lock()
-					for _, room := range p {
-						if room != start && room != end && blocked[room] {
-							mu.Unlock()
-							return // skip: someone else took this path
-						}
-					}
+
 					pathChan <- result{p}
-					mu.Lock()
-					for _, room := range p {
-						if room != start && room != end {
-							blocked[room] = true
-						}
-					}
-					mu.Unlock()
+					// mu.Lock()
+					// for _, room := range p {
+					// 	if room != start && room != end {
+					// 		blocked[room] = true
+					// 	}
+					// }
+					// mu.Unlock()
+
 				}
 			}
 		}()
 	}
 
-	// remov goroutine
+	
 	go func() {
 		wg.Wait()
-		close(pathChan) //  its job is only to wait until all 8 workers are done,
+		close(pathChan) 
 	}()
 
 	// add all paths
 	for res := range pathChan {
-		fmt.Println(res.path)
+		// fmt.Println(res.path)
 		allPaths = append(allPaths, res.path)
 	}
 
+	final := [][]string{}
+	used := map[string]bool{}
+	for _, path := range allPaths {
+		valid := true
+		for _, room := range path {
+			if room != start && room != end && used[room] {
+				valid = false
+				break
+			}
+		}
+		if valid {
+			final = append(final, path)
+			for _, room := range path {
+				if room != start && room != end {
+					used[room] = true
+				}
+			}
+		}
+	}
+
+	
 	close(done)
-	return allPaths
+
+	return final
 }
 
-// Main function to execute the logic
+
 func FindPaths(g *Game) {
 	all := FindAllDisjointPaths(g.Connections, g.StartRoom, g.EndRoom)
+	// for _, v := range all {
+	// 	fmt.Println(len(v))
+	// }
 	fmt.Println("-----", all)
 
 }
