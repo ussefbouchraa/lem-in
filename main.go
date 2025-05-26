@@ -9,7 +9,7 @@ import (
 
 func main() {
 	start := time.Now()
-	g, err := F.Parse("q.txt")
+	g, err := F.Parse("filetest.txt")
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
