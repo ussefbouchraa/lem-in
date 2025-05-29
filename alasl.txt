@@ -1,0 +1,100 @@
+package lemin
+
+import (
+	"fmt"
+)
+
+var blocked = make(map[string]bool)
+
+func BfsWithBlock(connections map[string][]string, start, end string, blocked map[string]bool) []string {
+	queue := [][]string{{start}}
+	visited := map[string]bool{start: true}
+
+	for len(queue) > 0 {
+		// fmt.Println("que--> ", queue)
+		path := queue[0]
+		queue = queue[1:]
+		last := path[len(path)-1]
+
+		if last == end {
+			return path
+		}
+
+		for _, neighbor := range connections[last] {
+
+			if visited[neighbor] || blocked[neighbor] {
+				continue
+			}
+			visited[neighbor] = true
+			newPath := append([]string{}, path...)
+			newPath = append(newPath, neighbor)
+			queue = append(queue, newPath)
+		}
+	}
+	return nil
+}
+
+func FindAllDisjointPaths(connections map[string][]string, start, end string) [][]string {
+	var allPaths [][]string
+
+	for {
+		path := BfsWithBlock(connections, start, end, blocked)
+		if path == nil {
+			break
+		}
+		allPaths = append(allPaths, path)
+
+		for _, node := range path {
+			if node != start && node != end {
+				blocked[node] = true
+			}
+		}
+	}
+
+	return allPaths
+}
+
+// func ChoosingOptimalpath(paths [][]string, totalants int) [][]string {
+// 	bestRounds := int(^uint(0) >> 1) // max int
+// 	bestpaths := [][]string{}
+
+// 	for k := 1; k <= len(paths); k++ { // try all combinations of paths
+
+// 		selcted := paths[:k]
+// 		maxlen := 0
+
+// 		for _, P := range selcted {
+// 			if len(P) > maxlen {
+// 				maxlen = len(P)
+// 			}
+// 		}
+
+// 		round := maxlen - 1 + (totalants / k)
+
+// 		if totalants%k != 0 {
+// 			round++
+// 		}
+
+// 		if round < bestRounds {
+// 			bestRounds = round
+// 			bestpaths = selcted
+// 		}
+// 		// fmt.Println("----> ", round)
+
+// 	}
+// 	return bestpaths
+// }
+
+
+func FindPaths(g *Game) {
+	all := FindAllDisjointPaths(g.Connections, g.StartRoom, g.EndRoom)
+	// for i, v := range all {
+	// 	fmt.Println("-%v path %v", i, v)
+	// }
+	// fmt.Println("-----", all)
+	for i, _ := range all {
+		fmt.Println("-----", len(all[i]))
+
+	}
+	// fmt.Println("-----", blocked)
+}

@@ -2,126 +2,112 @@ package lemin
 
 import (
 	"fmt"
-	"sync"
 )
 
-var blocked = make(map[string]bool)
-var mu sync.Mutex
+var visitedTunnels = make(map[string]map[string]bool)
 
-func BfsWithBlock(connections map[string][]string, start, end string, blocked map[string]bool) []string {
+func BfsWithBlock(connections map[string][]string, start, end string) []string {
 	queue := [][]string{{start}}
 	visited := map[string]bool{start: true}
 
 	for len(queue) > 0 {
+		// fmt.Println("_____ ", queue)
 		path := queue[0]
-		queue = queue[1:] // dequeue
+		// fmt.Println("xxxxx ", path)
+
+		queue = queue[1:] /////////////dequeue		///// FIFo \\\\\ OUT
 		last := path[len(path)-1]
+		// fmt.Println("lllll ", last)
+
 		if last == end {
-			mu.Lock()
-			for _, v := range path {
-				blocked[v] = true
-			}
-			mu.Unlock()
+			// fmt.Println("++++ ", path)
 			return path
 		}
-		mu.Lock()
-		for _, nb := range connections[last] {
-			if visited[nb] || blocked[nb] {
+
+		for _, Nb := range connections[last] {
+
+			if visitedTunnels[last] != nil && visitedTunnels[last][Nb] { // come back
 				continue
 			}
-			visited[nb] = true
-			newPath := append(append([]string{}, path...), nb)
-			queue = append(queue, newPath) // enqueue
+
+			if visited[Nb] {
+				continue
+			}
+
+			visited[Nb] = true
+			newPath := append(append([]string{}, path...), Nb)
+			queue = append(queue, newPath) //////////// enquue
 		}
-		mu.Unlock()
 	}
 	return nil
 }
 
-type result struct{ path []string }
-
 func FindAllDisjointPaths(connections map[string][]string, start, end string) [][]string {
-	const workers = 8
-	pathChan := make(chan result, workers) // buffred channel
-	done := make(chan struct{})
 	var allPaths [][]string
-	var wg sync.WaitGroup
-	// var mu sync.Mutex
-	// 8 goroutines
-	for w := 0; w < workers; w++ { // this loop is just runs 8 go routines
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for {
-				select {
-				case <-done:
-					return
-				default:
+	for {
+		path := BfsWithBlock(connections, start, end)
+		// fmt.Println(";;;;;;;;; ", path)
+		if path == nil {
+			break
+		}
+		allPaths = append(allPaths, path)
 
-					// blocked := make(map[string]bool) // private map of go routine
-					p := BfsWithBlock(connections, start, end, blocked)
-					if p == nil {
-						return
+		for i, node := range path {
+
+			if i+1 < len(path) {
+				if len(path) > 2 {
+					// fmt.Println("biss    ", visitedTunnels)
+					if visitedTunnels[node] == nil {
+						visitedTunnels[node] = make(map[string]bool)
 					}
-
-					pathChan <- result{p}
-					// mu.Lock()
-					// for _, room := range p {
-					// 	if room != start && room != end {
-					// 		blocked[room] = true
-					// 	}
-					// }
-					// mu.Unlock()
-
+					visitedTunnels[node][path[i+1]] = true
 				}
-			}
-		}()
-	}
 
-	
-	go func() {
-		wg.Wait()
-		close(pathChan) 
-	}()
-
-	// add all paths
-	for res := range pathChan {
-		// fmt.Println(res.path)
-		allPaths = append(allPaths, res.path)
-	}
-
-	final := [][]string{}
-	used := map[string]bool{}
-	for _, path := range allPaths {
-		valid := true
-		for _, room := range path {
-			if room != start && room != end && used[room] {
-				valid = false
-				break
-			}
-		}
-		if valid {
-			final = append(final, path)
-			for _, room := range path {
-				if room != start && room != end {
-					used[room] = true
-				}
 			}
 		}
 	}
-
-	
-	close(done)
-
-	return final
+	return allPaths
 }
 
+// func ChoosingOptimalpath(paths [][]string, totalants int) [][]string {
+
+// 	bestRounds := int(^uint(0) >> 1) // max int
+// 	bestpaths := [][]string{}
+
+// 	for k := 1; k <= len(paths); k++ { // try all combinations of paths
+
+// 		selcted := paths[:k]
+// 		maxlen := 0
+
+// 		for _, P := range selcted {
+// 			if len(P) > maxlen {
+// 				maxlen = len(P)
+// 			}
+// 		}
+
+// 		round := maxlen - 1 + (totalants / k)
+
+// 		if totalants%k != 0 {
+// 			round++
+// 		}
+
+// 		if round < bestRounds {
+// 			bestRounds = round
+// 			bestpaths = selcted
+// 		}
+
+// 	}
+// 	return bestpaths
+// }
 
 func FindPaths(g *Game) {
 	all := FindAllDisjointPaths(g.Connections, g.StartRoom, g.EndRoom)
 	// for _, v := range all {
-	// 	fmt.Println(len(v))
+	// 	fmt.Println("all-----", v)
+	// 	fmt.Println("len-----", len(v))
+	// 	fmt.Println()
+	// 	fmt.Println()
 	// }
-	fmt.Println("-----", all)
+	fmt.Println("-----> ", all)
 
 }

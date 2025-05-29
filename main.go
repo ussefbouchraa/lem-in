@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
-
 	F "lemin/funcs"
+	"time"
 )
 
 func main() {
@@ -15,6 +14,8 @@ func main() {
 		return
 	}
 
-	F.FindPaths(g)
+	F.FindPaths(*&g)
+
 	fmt.Println("Execution time:", time.Since(start))
+
 }
