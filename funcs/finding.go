@@ -11,13 +11,13 @@ func BfsWithBlock(connections map[string][]string, start, end string) []string {
 	visited := map[string]bool{start: true}
 
 	for len(queue) > 0 {
-		// fmt.Println("_____ ", queue)
+		// fmt.Println("queue ", queue)
 		path := queue[0]
-		// fmt.Println("xxxxx ", path)
+		// fmt.Println("path ", path)
 
 		queue = queue[1:] /////////////dequeue		///// FIFo \\\\\ OUT
 		last := path[len(path)-1]
-		// fmt.Println("lllll ", last)
+		// fmt.Println("last ", last)
 
 		if last == end {
 			// fmt.Println("++++ ", path)
@@ -53,19 +53,28 @@ func FindAllDisjointPaths(connections map[string][]string, start, end string) []
 		allPaths = append(allPaths, path)
 
 		for i, node := range path {
+			if i+2 < len(path) && len(path) > 2 {
+				if node != start && path[i+1] != end {
+					if path[i+2] != end {
 
-			if i+1 < len(path) {
-				if len(path) > 2 {
-					// fmt.Println("biss    ", visitedTunnels)
-					if visitedTunnels[node] == nil {
-						visitedTunnels[node] = make(map[string]bool)
+						if visitedTunnels[node] == nil {
+							visitedTunnels[node] = make(map[string]bool)
+						}
+						visitedTunnels[node][path[i+1]] = true
+						// fmt.Println("mappp------  ", visitedTunnels)
 					}
-					visitedTunnels[node][path[i+1]] = true
 				}
+			} else if i+1 < len(path) && len(path) <= 2 {
+
+				if visitedTunnels[node] == nil {
+					visitedTunnels[node] = make(map[string]bool)
+				}
+				visitedTunnels[node][path[i+1]] = true
 
 			}
 		}
 	}
+	fmt.Println(connections)
 	return allPaths
 }
 
@@ -102,12 +111,11 @@ func FindAllDisjointPaths(connections map[string][]string, start, end string) []
 
 func FindPaths(g *Game) {
 	all := FindAllDisjointPaths(g.Connections, g.StartRoom, g.EndRoom)
-	// for _, v := range all {
-	// 	fmt.Println("all-----", v)
-	// 	fmt.Println("len-----", len(v))
-	// 	fmt.Println()
-	// 	fmt.Println()
-	// }
-	fmt.Println("-----> ", all)
-
+	for _, v := range all {
+		fmt.Println("all[]-----", v)
+		fmt.Println("len[v]-----", len(v))
+		fmt.Println()
+		fmt.Println()
+	}
+	fmt.Println("lenall-----> ", len(all))
 }
