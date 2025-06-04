@@ -47,12 +47,11 @@ func ParseFile(file *os.File) (*H.Farm, error) {
 
 	var start, end int
 	for scanner.Scan() {
-
 		data.Count++
-
+		// Read line and skip if empty
 		line := scanner.Text()
-		if line == "" {continue }
-		
+		if line == "" {	continue}
+
 		// standard checkLine  !
 		if !IsValidLine(line) {
 			return nil, errors.New("Invalid Line Format")
@@ -109,8 +108,6 @@ func ParseFile(file *os.File) (*H.Farm, error) {
 
 	return &data, nil
 }
-
-
 
 func IsGlobalEmpty(g *H.Farm) bool {
 	if g.AntsCount == 0 {
