@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"fmt"
+	"errors"
 	H "lemin/header"
 )
 
@@ -38,6 +38,42 @@ func BfsWithBlock(connections map[string][]string, start, end string) []string {
 	return nil
 }
 
+func FindAllDisjointPaths(connections map[string][]string, start, end string) [][]string {
+	var allPaths [][]string
+
+	for {
+		path := BfsWithBlock(connections, start, end)
+		if path == nil {
+			break
+		}
+		allPaths = append(allPaths, path)
+		// sheck visited tunnel espect start ---> node & noode ---> End
+		for i, node := range path {
+			if i+1 < len(path) {
+				if len(path) > 2 && node != start {
+					if path[i+1] != end {
+						if visitedTunnels[node] == nil {
+							visitedTunnels[node] = make(map[string]bool)
+						}
+						visitedTunnels[node][path[i+1]] = true
+
+					} else if len(path) == 3 {
+
+						if visitedTunnels[node] == nil {
+							visitedTunnels[node] = make(map[string]bool)
+						}
+						visitedTunnels[node][path[i+1]] = true
+					}
+				} else if len(path) == 2 {
+					visitedTunnels[node] = make(map[string]bool)
+					visitedTunnels[node][path[i+1]] = true
+				}
+			}
+		}
+	}
+	return allPaths
+}
+
 func FindAllPathsMin(connections map[string][]string, start, end string) [][]string {
 	var allPaths [][]string
 	queue := [][]string{{start}}
@@ -72,49 +108,7 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func FindAllDisjointPaths(connections map[string][]string, start, end string) [][]string {
-	var allPaths [][]string
-
-	for {
-		path := BfsWithBlock(connections, start, end)
-		if path == nil {
-			break
-		}
-		allPaths = append(allPaths, path)
-		// sheck visited tunnel espect start ---> node & noode ---> End
-		for i, node := range path {
-			if i+1 < len(path) {
-
-				if len(path) > 2 && node != start {
-
-					if path[i+1] != end {
-						if visitedTunnels[node] == nil {
-
-							visitedTunnels[node] = make(map[string]bool)
-						}
-						visitedTunnels[node][path[i+1]] = true
-
-					} else if len(path) == 3 {
-
-						if visitedTunnels[node] == nil {
-							visitedTunnels[node] = make(map[string]bool)
-						}
-						visitedTunnels[node][path[i+1]] = true
-					}
-
-				} else if len(path) == 2 {
-					visitedTunnels[node] = make(map[string]bool)
-					visitedTunnels[node][path[i+1]] = true
-				}
-
-			}
-		}
-	}
-	return allPaths
-}
-
 func Decide(connections map[string][]string, start, end string, count int) [][]string {
-
 	if count < 100 {
 		paths := FindAllPathsMin(connections, start, end)
 		return paths
@@ -142,7 +136,7 @@ func FindPaths(g *H.Farm) ([]Path, error) {
 	rawPaths := Decide(connections, g.StartRoom.R_name, g.EndRoom.R_name, g.Count)
 
 	if len(rawPaths) == 0 {
-		return nil, fmt.Errorf("no path found from start to end")
+			return nil, errors.New("No Path Found")
 	}
 
 	// Convert [][]string to []Path

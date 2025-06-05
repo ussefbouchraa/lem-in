@@ -170,8 +170,7 @@ func ProcessData(data *H.Farm) error {
 	if IsUnknownRoom(data) {
 		return errors.New("Unknown Room In Tunnel")
 	}
-	//No path exists between start and end
-	// if IsPathFound(data.links){ return errors.New("No Path Found")}
+
 
 	return nil
 }

@@ -31,17 +31,17 @@ func main() {
 	}
 
 	if err = P.ProcessData(data); err != nil {
-		os.Stderr.WriteString("ERROR: invalid data format " + err.Error() + "\n")
+		os.Stderr.WriteString("ERROR: Invalid Data Format " + err.Error() + "\n")
 		return
 	}
 
 
 
 	paths, err := E.FindPaths(data)
+	if err != nil {os.Stderr.WriteString("ERROR: Invalid Data Format " + err.Error() + "\n"); return  }
 	moves := E.SimulateAntMovement(data, paths)
 
-	fmt.Print(E.FormatOutput(data))
-	fmt.Println()
+	fmt.Println(E.FormatOutput(data))
 	for _, move := range moves {
 		fmt.Println(move)
 	}
